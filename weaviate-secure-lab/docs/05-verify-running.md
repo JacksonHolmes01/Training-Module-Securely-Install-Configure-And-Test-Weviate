@@ -26,6 +26,81 @@ You should see a container named `weaviate` with a status of `Up`.
 
 ---
 
+## Why we test unauthenticated vs authenticated access
+
+Before working with data, schemas, or permissions, we must confirm that Weaviate is enforcing authentication correctly.
+
+A running service is not necessarily a **secure** service.
+
+This step verifies two critical security properties:
+
+1. **Unauthorized users cannot access the API**
+2. **Authorized users can access the API**
+
+Both must be true for the system to be considered safely configured.
+
+---
+
+### What risk this test is addressing
+
+Vector databases often store:
+- proprietary documents
+- embeddings derived from sensitive text
+- internal knowledge bases
+- model inputs and outputs
+
+If anonymous access is enabled by mistake:
+- anyone with network access could query metadata
+- schema and configuration details could be exposed
+- data leakage becomes possible without authentication
+
+Testing unauthenticated access ensures this risk is mitigated.
+
+---
+
+### Why failure is the expected outcome
+
+In the first test, we intentionally make a request **without credentials**.
+
+If Weaviate is configured securely:
+- the request should be rejected
+- the API should return `401 Unauthorized`
+- the error message should indicate authentication is required
+
+A failure here is **success** from a security standpoint.
+
+If this request succeeds, the system is misconfigured and must not be used.
+
+---
+
+### Why we test authenticated access next
+
+After confirming that anonymous access is blocked, we then verify that:
+
+- valid API keys are accepted
+- authorized users can successfully access the API
+- the authentication mechanism works end to end
+
+This confirms that security controls are not only present, but usable.
+
+---
+
+### What this proves before continuing
+
+By completing both tests, you have proven that:
+
+- Weaviate is running and reachable
+- authentication is enforced
+- access is intentionally restricted
+- the system is safe to continue configuring
+
+Only after these checks pass should you proceed to defining users, roles, and permissions.
+
+---
+
+The next sections build directly on this trust boundary.
+
+
 ## Why we use `/v1/meta`
 
 The `/v1/meta` endpoint:
