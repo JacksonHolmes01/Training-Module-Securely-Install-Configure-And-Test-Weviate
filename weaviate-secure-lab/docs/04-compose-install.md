@@ -37,6 +37,99 @@ If `docker-compose.yml` is not in this location, Docker Compose will fail.
 
 ---
 
+### Resource limits (preventing excessive memory usage)
+
+Vector databases can consume a significant amount of memory, especially as data grows.  
+If left unconstrained, a container can use most or all of the host system’s RAM, slowing down or crashing the machine.
+
+To prevent this, we enforce **resource limits at the container level** using Docker.
+
+These limits:
+- protect your system from runaway memory usage
+- make behavior predictable
+- mirror real production best practices
+- are enforced by Docker, not by Weaviate itself
+
+---
+
+## Where resource limits are defined
+
+Resource limits are defined inside the `docker-compose.yml` file, under the Weaviate service.
+
+Docker applies these limits **before the container starts**, meaning Weaviate can never exceed them.
+
+---
+
+## Memory limit configuration
+
+In this project, the Weaviate container is configured with a fixed memory limit.
+
+Example (already included in `docker-compose.yml`):
+
+```yaml
+services:
+  weaviate:
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+```
+
+### What this means
+- `memory: 2g` limits the container to **2 gigabytes of RAM**
+- If Weaviate attempts to exceed this limit, Docker will restrict it
+- This protects the host system from instability
+
+---
+
+## Why this matters for security and reliability
+
+From a security and operational standpoint:
+- uncontrolled resource usage is a form of denial-of-service risk
+- memory exhaustion can impact other applications
+- predictable limits make systems easier to monitor and debug
+
+Setting limits is part of a **secure and responsible deployment**, even in local development.
+
+---
+
+## What happens if the limit is exceeded
+
+If Weaviate tries to use more memory than allowed:
+- performance may degrade
+- the container may restart
+- Docker may terminate the process
+
+This is expected behavior and indicates the limit is working.
+
+---
+
+## Adjusting limits (optional)
+
+If your system has more available memory and you understand the impact, you may adjust the limit.
+
+For example:
+
+```yaml
+memory: 4g
+```
+
+Do **not** remove the memory limit entirely unless you understand the risks.
+
+---
+
+## Important note
+
+Resource limits are enforced by Docker only when using containers.  
+They do **not** apply to non-containerized installations.
+
+All Docker Compose commands in this tutorial assume these limits are in place.
+
+---
+
+After confirming the configuration, you can safely start Weaviate.
+
+
 ## Start Weaviate
 
 Make sure:
