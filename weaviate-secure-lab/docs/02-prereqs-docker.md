@@ -50,4 +50,17 @@ Once Docker is installed and running, open a terminal and run:
 docker --version
 docker compose version
 ```
+## What success looks like
+
+Both commands should print version numbers.
+
+Example output (your versions may be different):
+
+Docker version 26.1.1, build 1234567  
+Docker Compose version v2.25.0
+
+If you see version numbers for both commands, Docker is installed correctly and you can continue.
+
+If either command fails or prints an error, Docker is not ready yet and you should not continue.
+
 Next: [Create the Project Folder](03-project-setup.md)
