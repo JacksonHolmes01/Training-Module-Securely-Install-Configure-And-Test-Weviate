@@ -1,0 +1,31 @@
+services:
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: weaviate
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:50051:50051"
+
+    environment:
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      QUERY_DEFAULTS_LIMIT: "25"
+
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "admin-key-123,viewer-key-123"
+      AUTHENTICATION_APIKEY_USERS: "admin-user,viewer-user"
+
+      AUTHORIZATION_RBAC_ENABLED: "true"
+      AUTHORIZATION_RBAC_ROOT_USERS: "admin-user"
+
+      ENABLE_MODULES: "backup-filesystem"
+      BACKUP_FILESYSTEM_PATH: "/tmp/backups"
+
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+      - ./backups:/tmp/backups
+
+volumes:
+  weaviate_data:
