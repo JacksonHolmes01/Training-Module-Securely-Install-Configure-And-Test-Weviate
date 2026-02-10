@@ -66,23 +66,93 @@ Once you are in the directory where you want the project to live, continue to th
 
 ---
 
-## Clone the repository
+## Clone the repository (important note)
 
-Run the following command, replacing the URL with the repository URL if needed:
+In the command below, `YOUR_USERNAME` is a **placeholder**, not a real value.
 
-```bash
-git clone https://github.com/YOUR_USERNAME/weaviate-secure-lab.git
-```
+You **must replace it** with the actual GitHub username that owns the repository.
 
-### What this does
-- `git clone` downloads a copy of the repository
-- A new folder named `weaviate-secure-lab` is created
-- All project files are placed inside that folder, including:
-  - `docker-compose.yml`
-  - the `docs/` folder
-  - supporting files
+If you copy the command exactly as written with `YOUR_USERNAME`, cloning will fail.
 
 ---
+
+## Get the correct repository URL
+
+1. Open the repository on GitHub in your web browser
+2. Click the green **Code** button
+3. Make sure **HTTPS** is selected
+4. Copy the URL shown
+
+It will look similar to this:
+
+```
+https://github.com/actual-username/weaviate-secure-lab.git
+```
+
+---
+
+## Clone the repository
+
+Replace `actual-username` with the real username and run:
+
+```bash
+git clone https://github.com/actual-username/weaviate-secure-lab.git
+```
+
+This command downloads the repository and creates a folder named `weaviate-secure-lab` on your computer.
+
+---
+
+## What success looks like
+
+If the clone is successful, you will see output similar to:
+
+```
+Cloning into 'weaviate-secure-lab'...
+```
+
+and a new folder named `weaviate-secure-lab` will appear in your current directory.
+
+---
+
+## If you see an authentication error
+
+If you see an error like:
+
+```
+remote: Invalid username or token.
+Password authentication is not supported for Git operations.
+```
+
+This usually means **one of the following**:
+
+- The repository URL is incorrect
+- `YOUR_USERNAME` was not replaced
+- The repository is private
+
+If the repository is private, you must authenticate with GitHub before cloning.
+
+---
+
+## If the repository is private (optional)
+
+The easiest way to authenticate is using the GitHub CLI.
+
+1. Install GitHub CLI:  
+   https://cli.github.com/
+2. Log in:
+   ```bash
+   gh auth login
+   ```
+3. Clone the repository:
+   ```bash
+   gh repo clone actual-username/weaviate-secure-lab
+   ```
+
+---
+
+If cloning succeeds and the `weaviate-secure-lab` folder exists, you can continue to the next step.
+
 
 ## Move into the project folder
 
