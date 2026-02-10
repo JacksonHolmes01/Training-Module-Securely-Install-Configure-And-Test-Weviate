@@ -1,11 +1,10 @@
-# Create the Project Folder
+# Get the Project Files from GitHub
 
-In this step, you will create a folder on your computer that will hold all the files for this lab.
+In this step, you will download the project files from GitHub onto your computer.
 
-This folder will become your **working directory**, meaning it is the place where:
-- Docker will look for the `docker-compose.yml` file
-- You will run all commands for this tutorial
-- All project files will live together in one place
+This is an important step. Files that exist on GitHub do **not** automatically exist on your local machine. You must download them before Docker Compose can use them.
+
+This repository already contains the `docker-compose.yml` file and all documentation. Cloning the repository ensures everything is placed in the correct location.
 
 ---
 
@@ -13,23 +12,31 @@ This folder will become your **working directory**, meaning it is the place wher
 
 If you do not already have a terminal open, open one now.
 
-(If you need help with this, return to the previous page on opening a terminal.)
+---
+
+## Choose where to store the project
+
+Decide where you want to keep this project on your computer. A common choice is your home directory.
+
+If you are unsure, you can continue without changing directories.
 
 ---
 
-## Create the project folder
+## Clone the repository
 
-Run the following command:
+Run the following command, replacing the URL with the repository URL if needed:
 
 ```bash
-mkdir weaviate-secure-lab
+git clone https://github.com/YOUR_USERNAME/weaviate-secure-lab.git
 ```
 
 ### What this does
-- `mkdir` means “make directory”
-- `weaviate-secure-lab` is the name of the folder you are creating
-
-After running this command, a new folder named `weaviate-secure-lab` exists on your computer.
+- `git clone` downloads a copy of the repository
+- A new folder named `weaviate-secure-lab` is created
+- All project files are placed inside that folder, including:
+  - `docker-compose.yml`
+  - the `docs/` folder
+  - supporting files
 
 ---
 
@@ -41,37 +48,37 @@ Now run:
 cd weaviate-secure-lab
 ```
 
-### What this does
-- `cd` means “change directory”
-- This tells your terminal to start working **inside** the project folder
-
-All commands you run next should be executed from this directory.
+All commands for the rest of this tutorial must be run from inside this folder.
 
 ---
 
 ## What success looks like
 
-After running the commands above:
-- The folder `weaviate-secure-lab` exists on your system
-- Your terminal is currently inside that folder
-
 If you run:
 
 ```bash
-pwd
+ls
 ```
 
-You should see a path that **ends with**:
+You should see files and folders such as:
 
 ```
-weaviate-secure-lab
+docker-compose.yml
+docs
+README.md
 ```
 
-This confirms you are in the correct location.
+This confirms the project files are available on your machine.
+
+If you do **not** see `docker-compose.yml`, do not continue yet.
 
 ---
 
 ## Important note
+
+If you skip this step and create an empty folder manually, Docker Compose will fail because the configuration file will not exist locally.
+
+Always clone the repository before running Docker commands.
 
 From this point forward:
 - You should run all tutorial commands **inside this folder**
