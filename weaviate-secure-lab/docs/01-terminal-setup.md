@@ -7,7 +7,6 @@ Press Command + Space, type Terminal, press Enter.
 
 ## Windows (10 / 11)
 Open Windows Terminal or PowerShell from the Start menu.
-Make sure Docker Desktop is running.
 
 ## Linux
 Press Ctrl + Alt + T or open Terminal from the applications menu.
