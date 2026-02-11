@@ -30,7 +30,7 @@ It is written for beginners and assumes no prior experience with Weaviate, Docke
 9. [Create Test Data](docs/08-create-test-data.md)
 10. [Download Data](https://github.com/JacksonHolmes01/Training-Module-Securely-Install-Configure-And-Test-Weviate/blob/139d16f10644b9e17108c2755994327727b1f80a/weaviate-secure-lab/docs/09-Download-Data.md)
 11. [Download Export Data](https://github.com/JacksonHolmes01/Training-Module-Securely-Install-Configure-And-Test-Weviate/blob/4d95bbdd5f0ba75ec6e02505f53710de81cbd286/weaviate-secure-lab/docs/10-Download-Export-Data.md)
-12. [Final Checklist & Quiz](docs/11-checklist-and-quiz.md)
+12. [Backups](https://github.com/JacksonHolmes01/Training-Module-Securely-Install-Configure-And-Test-Weviate/blob/4f69d95d54e27ee5930a2f8c1c65797eb0c84dcf/weaviate-secure-lab/docs/11-backups.md)
 
 ---
 
