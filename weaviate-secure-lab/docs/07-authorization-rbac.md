@@ -234,157 +234,213 @@ nano scripts/rbac_test.py
 Paste **exactly** the following code into `scripts/rbac_test.py`:
 
 ```python
+"""
+RBAC test script for Weaviate (API keys + RBAC)
+
+What this script proves:
+1) Viewer cannot create a collection (schema write)        -> should FAIL (PASS = blocked)
+2) Admin can create a collection                           -> should SUCCEED
+3) Viewer cannot write data                                -> should FAIL (PASS = blocked)
+4) Viewer CAN read data                                    -> should SUCCEED
+
+Why we do a small "setup" step:
+- RBAC only works if the viewer user has a role that grants read permissions.
+- In this lab, we assign the predefined "viewer" role to `viewer-user` at runtime.
+  (This avoids confusing REST endpoint differences for schema writes.)
+
+Expected outcome:
+- PASS, PASS, PASS, PASS
+"""
+
 import sys
+from typing import Optional
+
 import weaviate
 
-# Admin (root) credentials — must match docker-compose.yml
+
+WEAVIATE_HOST = "localhost"
+WEAVIATE_HTTP_PORT = 8080
+WEAVIATE_GRPC_PORT = 50051
+
+ADMIN_USER_ID = "admin-user"
 ADMIN_KEY = "admin-key-123"
 
-# We will create a dynamic DB user for the viewer so RBAC can grant read permissions
 VIEWER_USER_ID = "viewer-user"
+VIEWER_KEY = "viewer-key-123"
 
-# Collection used for testing
 COLLECTION_NAME = "Note"
 
-def connect(api_key: str):
+
+def connect_with_key(api_key: str) -> weaviate.WeaviateClient:
     """
-    Connect to local Weaviate using an API key.
+    Connect to local Weaviate using an API key via Authorization: Bearer <key>.
     """
-    return weaviate.connect_to_local(
+    client = weaviate.connect_to_local(
+        host=WEAVIATE_HOST,
+        port=WEAVIATE_HTTP_PORT,
+        grpc_port=WEAVIATE_GRPC_PORT,
         headers={"Authorization": f"Bearer {api_key}"},
-        host="localhost",
-        port=8080,
-        grpc_port=50051,
+    )
+    return client
+
+
+def print_result(label: str, ok: bool, detail: str = "") -> None:
+    status = "PASS" if ok else "FAIL"
+    msg = f"[{status}] {label}"
+    if detail:
+        msg += f" — {detail}"
+    print(msg)
+
+
+def safe_close(client: Optional[weaviate.WeaviateClient]) -> None:
+    try:
+        if client is not None:
+            client.close()
+    except Exception:
+        pass
+
+
+def ensure_viewer_has_viewer_role(admin: weaviate.WeaviateClient) -> None:
+    """
+    Make sure `viewer-user` has the predefined `viewer` role.
+
+    Note:
+    - `viewer-user` may be a db_env_user (created via AUTHENTICATION_APIKEY_USERS).
+      Even then, assigning roles should work via the RBAC API.
+    - If DB user management is disabled, this will fail. That's OK: the lab should
+      enable RBAC and keep users defined via AUTHENTICATION_APIKEY_USERS.
+
+    This step is required so the viewer can READ data but not WRITE data.
+    """
+    # Confirm the user exists (helps give a clear error if the compose keys/users are wrong)
+    try:
+        users = admin.users.db.list_all()
+    except Exception as e:
+        raise RuntimeError(
+            "Could not list users. RBAC user management endpoints might be unavailable.\n"
+            "Confirm RBAC is enabled and Weaviate is running."
+        ) from e
+
+    found = any(getattr(u, "user_id", None) == VIEWER_USER_ID for u in users)
+    if not found:
+        raise RuntimeError(
+            f"Viewer user '{VIEWER_USER_ID}' not found.\n"
+            "Fix: ensure docker-compose.yml includes:\n"
+            f'  AUTHENTICATION_APIKEY_USERS: "{ADMIN_USER_ID},{VIEWER_USER_ID}"\n'
+            f'  AUTHENTICATION_APIKEY_ALLOWED_KEYS: "{ADMIN_KEY},{VIEWER_KEY}"'
+        )
+
+    # Assign the predefined "viewer" role (grants read permissions).
+    # This is the missing step when you see:
+    #   forbidden action ... insufficient permissions to read_data
+    try:
+        admin.users.db.assign_roles(user_id=VIEWER_USER_ID, role_names=["viewer"])
+    except Exception as e:
+        raise RuntimeError(
+            f"Could not assign RBAC role 'viewer' to user '{VIEWER_USER_ID}'.\n"
+            "Fix: confirm RBAC is enabled and the admin user is a root user:\n"
+            f'  AUTHORIZATION_RBAC_ENABLED: "true"\n'
+            f'  AUTHORIZATION_RBAC_ROOT_USERS: "{ADMIN_USER_ID}"\n'
+        ) from e
+
+
+def ensure_clean_collection(admin: weaviate.WeaviateClient) -> None:
+    """
+    Ensure a known-good collection exists for the test.
+    We delete it if it exists, then recreate it.
+    """
+    try:
+        if admin.collections.exists(COLLECTION_NAME):
+            admin.collections.delete(COLLECTION_NAME)
+    except Exception:
+        # If delete fails, we still try to create fresh; creation may fail if it already exists
+        pass
+
+    # Create with no external vectorizer dependency
+    admin.collections.create(
+        name=COLLECTION_NAME,
+        vectorizer_config=None,
+        properties=[
+            weaviate.classes.config.Property(
+                name="text",
+                data_type=weaviate.classes.config.DataType.TEXT,
+            )
+        ],
     )
 
-def print_result(label: str, ok: bool, detail: str = ""):
-    status = "PASS" if ok else "FAIL"
-    line = f"[{status}] {label}"
-    if detail:
-        line += f" — {detail}"
-    print(line)
 
-def ensure_viewer_user_and_role(admin_client):
-    """
-    Creates (or reuses) a DB user 'viewer-user' and assigns the built-in 'viewer' role.
-    Returns the viewer user's API key.
-    """
-    # Check if viewer already exists
-    viewer_key = None
-    try:
-        users = admin_client.users.db.list_all()
-        existing = [u for u in users if u.user_id == VIEWER_USER_ID]
-        if existing:
-            # If user exists, rotate key so we can keep the lab simple and deterministic
-            viewer_key = admin_client.users.db.rotate_key(user_id=VIEWER_USER_ID)
-        else:
-            # Create user and get generated API key
-            viewer_key = admin_client.users.db.create(user_id=VIEWER_USER_ID)
-    except Exception as e:
-        raise RuntimeError(f"Could not create/list viewer DB user: {e}")
-
-    # Assign built-in 'viewer' role (read-only). If already assigned, this should be harmless.
-    try:
-        admin_client.users.db.assign_roles(
-            user_id=VIEWER_USER_ID,
-            roles=["viewer"],
-        )
-    except Exception as e:
-        raise RuntimeError(f"Could not assign 'viewer' role: {e}")
-
-    return viewer_key
-
-def main():
+def main() -> None:
     admin = None
     viewer = None
 
     try:
-        # 1) Connect as admin/root
-        admin = connect(ADMIN_KEY)
+        # --- Connect as admin ---
+        admin = connect_with_key(ADMIN_KEY)
 
-        # 2) Ensure viewer DB user exists + has viewer role
-        viewer_key = ensure_viewer_user_and_role(admin)
-        print("\nViewer API key created/rotated for this run:")
-        print(viewer_key)
-        print("Keep this key if you want to re-run viewer tests without rotating.\n")
+        # --- Ensure viewer has a read-only role (critical) ---
+        ensure_viewer_has_viewer_role(admin)
 
-        # 3) Viewer cannot create collection (schema write) — should FAIL
+        # --- 1) Viewer cannot create collection (schema write) ---
         try:
-            viewer = connect(viewer_key)
+            viewer = connect_with_key(VIEWER_KEY)
             viewer.collections.create(
-                name=COLLECTION_NAME,
+                name="ShouldFail_CreateByViewer",
                 vectorizer_config=None,
             )
-            print_result("Viewer cannot create collection (schema write)", False, "viewer was able to create schema")
+            print_result("Viewer cannot create collection", False, "viewer was able to create schema (RBAC not enforced)")
         except Exception:
-            print_result("Viewer cannot create collection (schema write)", True)
+            print_result("Viewer cannot create collection", True)
+        finally:
+            safe_close(viewer)
+            viewer = None
 
-        # 4) Admin can create collection — should SUCCEED
+        # --- 2) Admin can create collection (schema write) ---
         try:
-            # Delete existing collection if present (ignore errors)
-            try:
-                admin.collections.delete(COLLECTION_NAME)
-            except Exception:
-                pass
-
-            admin.collections.create(
-                name=COLLECTION_NAME,
-                vectorizer_config=None,
-            )
-            print_result("Admin can create collection (schema write)", True)
+            ensure_clean_collection(admin)
+            print_result("Admin can create collection", True)
         except Exception as e:
-            print_result("Admin can create collection (schema write)", False, str(e))
+            print_result("Admin can create collection", False, str(e))
             sys.exit(1)
 
-        # 5) Insert ONE object as admin so reads have something to fetch
+        # Insert one object as admin so there's something to read
         try:
             col_admin = admin.collections.get(COLLECTION_NAME)
-            col_admin.data.insert({"text": "hello from admin"})
-            print_result("Admin can write data", True)
-        except Exception as e:
-            print_result("Admin can write data", False, str(e))
-            sys.exit(1)
+            col_admin.data.insert({"text": "hello"})
+        except Exception:
+            # Not fatal for RBAC itself, but read test is nicer with data
+            pass
 
-        # 6) Viewer cannot write data — should FAIL
+        # --- 3) Viewer cannot write data (should fail) ---
         try:
-            # reconnect viewer (fresh client)
-            try:
-                if viewer:
-                    viewer.close()
-            except Exception:
-                pass
-
-            viewer = connect(viewer_key)
+            viewer = connect_with_key(VIEWER_KEY)
             col_viewer = viewer.collections.get(COLLECTION_NAME)
-            col_viewer.data.insert({"text": "viewer should not write"})
-            print_result("Viewer cannot write data", False, "viewer was able to insert data")
+            col_viewer.data.insert({"text": "viewer-write-should-fail"})
+            print_result("Viewer cannot write data", False, "viewer was able to insert data (RBAC not enforced)")
         except Exception:
             print_result("Viewer cannot write data", True)
+        finally:
+            safe_close(viewer)
+            viewer = None
 
-        # 7) Viewer CAN read data — should SUCCEED
+        # --- 4) Viewer CAN read data (should succeed) ---
         try:
-            results = col_viewer.query.fetch_objects(limit=1)
-            # If this call returns without exception, viewer read permissions work.
-            # We don't require a non-empty result, but we inserted one above anyway.
+            viewer = connect_with_key(VIEWER_KEY)
+            col_viewer = viewer.collections.get(COLLECTION_NAME)
+            _ = col_viewer.query.fetch_objects(limit=5)
             print_result("Viewer can read data", True)
         except Exception as e:
             print_result("Viewer can read data", False, str(e))
             sys.exit(1)
+        finally:
+            safe_close(viewer)
+            viewer = None
 
-        print("\nRBAC test complete.\n")
+        print("\nRBAC test complete.")
 
     finally:
-        # Always close clients to avoid ResourceWarnings and socket leaks
-        try:
-            if viewer:
-                viewer.close()
-        except Exception:
-            pass
-        try:
-            if admin:
-                admin.close()
-        except Exception:
-            pass
+        safe_close(viewer)
+        safe_close(admin)
+
 
 if __name__ == "__main__":
     main()
@@ -453,57 +509,6 @@ If you see **PASS** for all four checks, RBAC is working correctly.
 - Make sure the API keys in the script match `docker-compose.yml`
 
 If a step fails, **do not continue** until it is resolved.
-
----
-
-Next: [Create Test Data](08-create-test-data.md)
-## Step 4: Run the RBAC test
-
-From the repository root:
-
-```bash
-python scripts/rbac_test.py
-```
-
----
-
-## What success looks like
-
-You should see output where:
-
-- Viewer schema write is **PASS** (meaning viewer was blocked)
-- Admin schema write is **PASS**
-- Viewer data write is **PASS** (meaning viewer was blocked)
-- Viewer read is **PASS**
-
-Example structure (your exact error text may differ):
-
-```
-[PASS] Viewer cannot create collection (schema write) — <permission denied ...>
-[PASS] Admin can create collection
-[PASS] Viewer cannot write data — <permission denied ...>
-[PASS] Viewer can read data
-```
-
-If you see those PASS results, RBAC is enforcing different permissions correctly.
-
----
-
-## If something fails
-
-If the script fails unexpectedly:
-
-1. Confirm Weaviate is running:
-   ```bash
-   docker ps
-   ```
-
-2. Confirm schema is reachable:
-   ```bash
-   curl -i http://localhost:8080/v1/schema -H "Authorization: Bearer admin-key-123"
-   ```
-
-3. If you changed keys/users in `docker-compose.yml`, update them in the script constants at the top.
 
 ---
 
