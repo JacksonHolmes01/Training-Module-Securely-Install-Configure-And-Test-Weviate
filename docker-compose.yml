@@ -1,7 +1,7 @@
 services:
   weaviate:
     # Pin to a stable version (avoid :latest pulling RC/nightly builds)
-    image: semitechnologies/weaviate:1.24.12
+    image: semitechnologies/weaviate:1.36.0
     container_name: weaviate
     restart: unless-stopped
 
