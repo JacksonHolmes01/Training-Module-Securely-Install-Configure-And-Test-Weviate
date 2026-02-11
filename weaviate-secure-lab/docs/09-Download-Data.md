@@ -618,4 +618,4 @@ This completes the secure data ingestion workflow.
 
 ---
 
-Next: Download & Export Data
+Next: [Download & Export Data](https://github.com/JacksonHolmes01/Training-Module-Securely-Install-Configure-And-Test-Weviate/blob/25f8917b989ffce0b49d953ee14da7b224aa201a/weaviate-secure-lab/docs/09-Download-Export-Data.md)
