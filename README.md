@@ -5,6 +5,7 @@ This repository is a **step-by-step training module** that teaches how to **secu
 It is written for beginners and assumes **no prior experience** with Weaviate, Docker, or vector databases.
 
 This lab is part 1 of a 2 lab course. [Lab 2](https://github.com/JacksonHolmes01/Training-Module-Production-Grade-RAG-Infrastructure-Weaviate/tree/main) covers building a multi-service Retrieval-Augmented Generation (RAG) chatbot using Weaviate, Ollama, FastAPI, NGINX, and Gradio.
+It is recommended that you complete lab 1 before moving to lab 2.
 
 ---
 
