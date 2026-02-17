@@ -61,7 +61,7 @@ Follow the documentation pages **in order**. Each page builds on the previous on
 
 ### Start here:
 
-1. Go to the weviate-secure-lab folder and follow the instructions in the README
+1. Go to the weviate-secure-lab folder and follow the instructions in the [README](https://github.com/JacksonHolmes01/Training-Module-Securely-Install-Configure-And-Test-Weaviate/blob/main/weaviate-secure-lab/README.md)
 
 Do not skip validation steps — they are part of the learning.
 
