@@ -83,3 +83,7 @@ Once Docker is installed and running:
 
 ```bash
 docker compose up -d
+```
+
+License: CC BY-SA 4.0 — Jackson Holmes
+
